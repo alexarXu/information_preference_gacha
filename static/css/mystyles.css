@@ -1,0 +1,1659 @@
+/* /////////////////////////////////////////// */
+/* GLOBAL BACKGROUND */
+
+body,
+html,
+.jspsych-display-element,
+.jspsych-content-wrapper,
+.jspsych-content,
+#container-exp,
+#container-instructions,
+#container-consent,
+#container-questionnaire,
+#gachaChoice {
+    background-color: #fff !important;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+html:fullscreen,
+html:-webkit-full-screen,
+html:-moz-full-screen {
+    background-color: #fff !important;
+}
+
+.jspsych-display-element {
+    min-height: 100vh;
+    width: 100%;
+}
+
+:root {
+    --gacha-ui-font-family: Arial, Helvetica, sans-serif;
+    --gacha-message-size: clamp(18px, 1.85vw, 26px);
+    --gacha-slider-label-size: clamp(13px, 1.25vw, 17px);
+    --gacha-slider-top-label-offset: 5.8vh;
+    --gacha-message-area-bottom: 24%;
+    --gacha-message-area-height: 8vh;
+    --gacha-message-area-width: min(98vw, 980px);
+}
+
+/* Single viewport-fixed text cue — all trial messages render here */
+.gacha-text-cue {
+    position: fixed;
+    bottom: var(--gacha-message-area-bottom);
+    left: 50%;
+    transform: translateX(-50%);
+    width: var(--gacha-message-area-width);
+    max-width: 98vw;
+    min-height: var(--gacha-message-area-height);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--gacha-ui-font-family);
+    font-size: var(--gacha-message-size);
+    font-weight: bold;
+    text-align: center;
+    line-height: 1.35;
+    color: #222;
+    box-sizing: border-box;
+    z-index: 40;
+    margin: 0;
+    padding: 0 1vw;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.gacha-text-cue .cue-name {
+    display: inline;
+    margin: 0 0.28em;
+    font-weight: bold;
+}
+
+.gacha-text-cue .cue-amount {
+    display: inline;
+    margin: 0 0.28em;
+    font-weight: bold;
+}
+
+.exit-stay-prompt .cue-amount {
+    display: inline;
+    margin: 0 0.28em;
+    font-weight: bold;
+}
+
+.gacha-text-cue.hidden {
+    display: none;
+}
+
+.gacha-text-cue.gacha-text-cue-center {
+    top: 50%;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    white-space: normal;
+    max-width: min(90vw, 720px);
+}
+
+.gacha-text-cue .gacha-info-line {
+    display: inline;
+}
+
+.gacha-text-cue .gacha-info-muted {
+    color: #222;
+}
+
+/* Legacy in-template slots — never shown; JS uses #gachaTextCue on body */
+.gacha-prompt,
+.gacha-info-display {
+    display: none !important;
+}
+
+/* /////////////////////////////////////////// */
+/* FIXATION EPOCH */
+
+#fixation-container {
+    display: inline-block;
+    font-size: 10vh;
+}
+
+#fixation {
+    position: relative;
+    /* Changed from absolute */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+}
+
+.fixation-container:hover #fixation {
+    font-size: 12.5vh;
+    filter: brightness(1.1);
+    /* 10% brighter than the original */
+    transition: transform 0.3s, font-size 0.3s, filter 0.3s;
+}
+
+
+#trialInfo {
+    position: absolute;
+    top: 57.5%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    font-size: 2.8vh;
+    /* font-size will be set dynamically using JavaScript */
+}
+
+.fixation-time-remaining {
+    position: absolute;
+    top: 62.5%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    font-size: 2.2vh;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+    color: #444;
+    white-space: nowrap;
+}
+
+/* /////////////////////////////////////////// */
+/* GACHA MACHINE EPOCH */
+
+.gacha-wrapper {
+    width: 100%;
+    height: 100%;
+}
+
+.machine-container {
+    position: absolute;
+    top: 45%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    transition: transform 400ms ease-in-out, left 400ms ease-in-out, right 400ms ease-in-out;
+    z-index: 1;
+}
+
+.machine-container:hover {
+    transform: translateY(-50%) scale(1.06);
+    transition: transform 0.3s;
+}
+
+.machine-container.machine-disabled {
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+#machine-left {
+    left: 8%;
+}
+
+#machine-right {
+    right: 8%;
+}
+
+#machine-left.machine-centered {
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#machine-right.machine-centered {
+    right: auto;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.gacha-machine {
+    position: relative;
+    width: 18vw;
+    margin: 0 auto;
+}
+
+/* Dome — opaque masked globe hiding balls inside */
+.gacha-dome {
+    width: 16vw;
+    height: 16vw;
+    border-radius: 50%;
+    border: 0.5vw solid #888;
+    position: relative;
+    margin: 0 auto;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.gacha-dome-shine {
+    display: none;
+}
+
+/* Mini-balls hidden by default */
+.mini-ball {
+    display: none;
+}
+
+/* Dome in reveal state (Type C) — keep solid fill, no transparency */
+.gacha-dome.dome-revealing {
+    transition: none;
+}
+
+/* Individual ball inside dome (scattered via JS) */
+.dome-ball {
+    position: absolute;
+    width: 16%;
+    height: 16%;
+    border-radius: 50%;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7vw;
+    font-weight: bold;
+    color: white;
+    text-shadow: none;
+    box-shadow: none;
+}
+
+.dome-ball.ball-visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* Type C informative cue — highlighted example balls in dome */
+.dome-ball.dome-ball-example {
+    width: 24%;
+    height: 24%;
+    font-size: clamp(20px, 2.2vw, 34px) !important;
+    font-weight: bold;
+    z-index: 6;
+}
+
+.dome-ball.dome-ball-example.ball-visible {
+    transform: translate(-50%, -50%) scale(1.05);
+}
+
+@keyframes domeBallShuffle {
+    0%, 100% { transform: translate(-50%, -50%) scale(0.84) rotate(0deg); }
+    20% { transform: translate(-50%, -50%) scale(0.92) rotate(-16deg); }
+    40% { transform: translate(-50%, -50%) scale(0.88) rotate(12deg); }
+    60% { transform: translate(-50%, -50%) scale(0.95) rotate(-10deg); }
+    80% { transform: translate(-50%, -50%) scale(0.9) rotate(8deg); }
+}
+
+/* During Type C pre-reveal, all mini balls shuffle visually. */
+.gacha-dome.dome-shuffling .dome-ball {
+    opacity: 1;
+    animation: domeBallShuffle 0.6s ease-in-out;
+}
+
+/* Neck connecting dome to body */
+.gacha-neck {
+    width: 10vw;
+    height: 1.5vh;
+    margin: -0.3vh auto 0;
+    background: #aaa;
+    border-left: 0.5vw solid #888;
+    border-right: 0.5vw solid #888;
+    position: relative;
+    z-index: 2;
+}
+
+/* Machine body */
+.gacha-body {
+    width: 13vw;
+    height: 8vh;
+    margin: 0 auto;
+    border: 0.5vw solid #888;
+    border-top: none;
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0 0 0.5vw 0.5vw;
+}
+
+/* Turn dial/knob */
+.gacha-knob {
+    width: 3vw;
+    height: 3vw;
+    border-radius: 50%;
+    background: #aaa;
+    border: 0.2vw solid #777;
+    box-shadow: none;
+}
+
+/* Base */
+.gacha-base {
+    width: 15vw;
+    height: 3vh;
+    margin: 0 auto;
+    background: #666;
+    border-radius: 0 0 0.8vw 0.8vw;
+    position: relative;
+    z-index: 2;
+}
+
+/* Dispensing slot */
+.gacha-slot {
+    width: 5vw;
+    height: 5vh;
+    background: #444;
+    position: absolute;
+    bottom: -5vh;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 0 0 1vw 1vw;
+    border: 0.2vw solid #555;
+    border-top: none;
+}
+
+/* Machine indicator removed — no variance labels shown */
+
+/* Ball output zone */
+.gacha-ball-zone {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 6vh;
+    min-height: 7vw;
+    position: relative;
+}
+
+/* The capsule ball */
+.gacha-ball {
+    width: 5.5vw;
+    height: 5.5vw;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8vw;
+    font-weight: bold;
+    color: white;
+    text-shadow: none;
+    box-shadow: none;
+    position: relative;
+    z-index: 10;
+}
+
+.ball-content {
+    position: relative;
+    z-index: 11;
+    user-select: none;
+}
+
+/* Ball drop animation */
+@keyframes ballDrop {
+    0% {
+        transform: translateY(-18vh) scale(0.4);
+        opacity: 0;
+    }
+    15% {
+        opacity: 1;
+        transform: translateY(-10vh) scale(0.7);
+    }
+    50% {
+        transform: translateY(0) scale(1);
+    }
+    65% {
+        transform: translateY(-1.5vh) scale(1);
+    }
+    80% {
+        transform: translateY(0) scale(1);
+    }
+    90% {
+        transform: translateY(-0.4vh) scale(1);
+    }
+    100% {
+        transform: translateY(0) scale(1);
+    }
+}
+
+.gacha-ball.ball-dropping {
+    animation: ballDrop 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+@keyframes ballDeposit {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+    20% {
+        transform: translateY(-2vh) scale(1.05);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-18vh) scale(0.4);
+        opacity: 0;
+    }
+}
+
+.gacha-ball.ball-depositing {
+    animation: ballDeposit 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+.gacha-deposit-message {
+    display: none;
+}
+
+.participant-wallet {
+    position: fixed;
+    bottom: 8%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 25;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5vh;
+    pointer-events: none;
+}
+
+.wallet-icon {
+    width: clamp(56px, 8vw, 88px);
+    height: clamp(44px, 6vw, 66px);
+    background: linear-gradient(145deg, #5c4a3a, #3d2e24);
+    border-radius: 12px 12px 16px 16px;
+    border: 3px solid #2a2018;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    position: relative;
+}
+
+.wallet-icon::before {
+    content: "";
+    position: absolute;
+    top: 15%;
+    left: 10%;
+    right: 10%;
+    height: 35%;
+    background: #4a3828;
+    border-radius: 6px;
+}
+
+.wallet-label {
+    font-family: var(--gacha-ui-font-family);
+    font-size: clamp(13px, 1.2vw, 18px);
+    font-weight: bold;
+    color: #333;
+}
+
+.participant-wallet.wallet-receiving .wallet-icon {
+    animation: walletPulse 0.45s ease;
+}
+
+@keyframes walletPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+}
+
+@keyframes coinFlyToWallet {
+    0% {
+        left: var(--fly-start-x);
+        top: var(--fly-start-y);
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    100% {
+        left: var(--fly-end-x);
+        top: var(--fly-end-y);
+        transform: translate(-50%, -50%) scale(0.55);
+        opacity: 0.9;
+    }
+}
+
+.gacha-flying-coin {
+    position: fixed;
+    left: var(--fly-start-x);
+    top: var(--fly-start-y);
+    transform: translate(-50%, -50%);
+    font-size: clamp(26px, 3.2vw, 44px);
+    line-height: 1;
+    pointer-events: none;
+    z-index: 26;
+    user-select: none;
+}
+
+.gacha-flying-coin.coin-flying-to-wallet {
+    animation: coinFlyToWallet 2s cubic-bezier(0.33, 0, 0.2, 1) forwards;
+}
+
+@keyframes ballFlyToWallet {
+    0% {
+        transform: translate(-50%, -50%) translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) translate(var(--fly-dx), var(--fly-dy)) scale(0.55);
+        opacity: 0.95;
+    }
+}
+
+.gacha-flying-ball {
+    position: fixed;
+    aspect-ratio: 1 / 1;
+    box-sizing: border-box;
+    overflow: hidden;
+    flex-shrink: 0;
+    transform: translate(-50%, -50%);
+    transform-origin: center center;
+    pointer-events: none;
+    z-index: 26;
+    user-select: none;
+}
+
+.gacha-ball.gacha-flying-ball {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.gacha-flying-ball .ball-content {
+    position: relative;
+    z-index: 1;
+    user-select: none;
+    line-height: 1;
+    text-align: center;
+    max-width: 100%;
+}
+
+.gacha-ball.gacha-flying-ball.ball-face-large {
+    font-size: inherit;
+}
+
+.gacha-flying-ball.ball-flying-to-wallet {
+    animation: ballFlyToWallet 2s cubic-bezier(0.33, 0, 0.2, 1) forwards;
+}
+
+/* Machine shake before ball drops */
+@keyframes machineShake {
+    0%, 100% { transform: translateX(0); }
+    15% { transform: translateX(-0.3vw); }
+    30% { transform: translateX(0.3vw); }
+    45% { transform: translateX(-0.2vw); }
+    60% { transform: translateX(0.2vw); }
+    75% { transform: translateX(-0.1vw); }
+    90% { transform: translateX(0.1vw); }
+}
+
+.gacha-machine.shaking {
+    animation: machineShake 0.6s ease-in-out;
+}
+
+/* Ball wobble during suspense before reveal */
+@keyframes ballWobble {
+    0%   { transform: rotate(0deg)   scale(1);    }
+    15%  { transform: rotate(12deg)  scale(1.04);  }
+    30%  { transform: rotate(-10deg) scale(1.02);  }
+    45%  { transform: rotate(8deg)   scale(1.05);  }
+    60%  { transform: rotate(-6deg)  scale(1.02);  }
+    75%  { transform: rotate(4deg)   scale(1.04);  }
+    90%  { transform: rotate(-2deg)  scale(1.01);  }
+    100% { transform: rotate(0deg)   scale(1);     }
+}
+
+.gacha-ball.ball-wobbling {
+    animation: ballWobble 1.2s ease-in-out infinite;
+}
+
+/* Ball pendulum swing while waiting for reward delivery (after cue reveal) */
+@keyframes ballPendulum {
+    0%, 100% { transform: rotate(-9deg); }
+    50% { transform: rotate(9deg); }
+}
+
+.gacha-ball-zone .gacha-ball.ball-pendulum {
+    transform-origin: 50% -80%;
+    animation: ballPendulum 1.7s ease-in-out infinite;
+}
+
+.gacha-ball-zone .gacha-ball.ball-pendulum.ball-face-large {
+    animation: ballPendulum 1.7s ease-in-out infinite;
+}
+
+/* Ball pulse when value appears */
+@keyframes ballPulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.gacha-ball.ball-reveal {
+    animation: ballPulse 0.5s ease-in-out;
+}
+
+
+/* Legacy — see .gacha-text-cue */
+.gacha-prompt,
+.gacha-info-display {
+    display: none !important;
+}
+
+.gacha-info-line {
+    display: block;
+}
+
+.gacha-info-muted {
+    color: #222;
+}
+
+/* Sample draws display (for Type C) */
+.sample-draws-container {
+    position: fixed;
+    top: 8%;
+    right: 5%;
+    display: flex;
+    flex-direction: column;
+    gap: 1vh;
+    align-items: center;
+    z-index: 20;
+}
+
+.sample-draws-title {
+    font-size: 1.2vw;
+    font-weight: bold;
+    margin-bottom: 0.5vh;
+    text-align: center;
+}
+
+.sample-draw-ball {
+    width: 4vw;
+    height: 4vw;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2vw;
+    font-weight: bold;
+    color: white;
+    text-shadow: none;
+    box-shadow: none;
+    opacity: 0;
+    transition: opacity 0.4s ease-in;
+}
+
+.sample-draw-ball.visible {
+    opacity: 1;
+}
+
+/* Reward display */
+.gacha-reward-display {
+    position: fixed;
+    bottom: 3%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2.2vw;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    z-index: 20;
+}
+
+/* /////////////////////////////////////////// */
+/* GACHA BDM SLIDER */
+
+.gacha-slider-container {
+    position: fixed;
+    bottom: 12%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(92vw, 1100px);
+    z-index: 30;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: clamp(8px, 1.2vw, 18px);
+}
+
+.gacha-slider-end-label {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: none;
+    font-family: var(--gacha-ui-font-family);
+    font-size: var(--gacha-slider-label-size);
+    font-weight: bold;
+    line-height: 1.1;
+    text-align: center;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15vh;
+}
+
+.gacha-slider-end-label-line {
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.gacha-slider-end-label-left {
+    color: var(--noinfo-cue-color, #C65D3B);
+}
+
+.gacha-slider-end-label-right {
+    color: var(--info-cue-color, #3498DB);
+}
+
+.gacha-slider-track-wrapper {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+    height: 12.5vh;
+    display: flex;
+    align-items: center;
+    --gacha-slider-thumb-size: 1.4vw;
+    --gacha-slider-track-half-height: 1.1vh;
+    --gacha-slider-result-label-gap: 2px;
+}
+
+.gacha-slider-zero-label {
+    left: 50%;
+    color: #666;
+}
+
+/* Two-line stack labels above the bid bar (e.g. 1 / coin, 0 / No Bid) */
+.gacha-slider-limit-label {
+    position: absolute;
+    top: calc(50% - var(--gacha-slider-top-label-offset, 4.8vh));
+    font-family: var(--gacha-ui-font-family);
+    font-size: var(--gacha-slider-label-size);
+    font-weight: bold;
+    transform: translateX(-50%);
+    pointer-events: none;
+    line-height: 1.15;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.gacha-slider-label-line {
+    display: block;
+}
+
+.gacha-slider-label-unit,
+.gacha-slider-label-desc {
+    font-weight: bold;
+}
+
+/* Full visual scale: -10 to +10 (outer 10% each side shows computer prices above max bid) */
+.gacha-slider-visual-track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 2.2vh;
+    border-radius: 6px;
+    background: linear-gradient(
+        to right,
+        var(--noinfo-cue-color, #C65D3B) 0%,
+        #ddd 45%,
+        #fff 50%,
+        #fff 50%,
+        var(--info-cue-color, #3498DB) 100%
+    );
+    z-index: 0;
+}
+
+.gacha-slider-bid-zone {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    top: 0;
+    bottom: 0;
+    border-left: 0.12vw solid rgba(0, 0, 0, 0.25);
+    border-right: 0.12vw solid rgba(0, 0, 0, 0.25);
+    box-sizing: border-box;
+    pointer-events: none;
+}
+
+.gacha-slider-limit {
+    position: absolute;
+    top: -0.4vh;
+    bottom: -0.4vh;
+    width: 0.12vw;
+    background: rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+}
+
+.gacha-slider-limit-left {
+    left: 10%;
+    transform: translateX(-50%);
+}
+
+.gacha-slider-limit-right {
+    left: 90%;
+    transform: translateX(-50%);
+}
+
+.gacha-slider-zero-line {
+    position: absolute;
+    top: -0.4vh;
+    bottom: -0.4vh;
+    left: 50%;
+    width: 0.12vw;
+    background: #888;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.gacha-slider-limit-label-left {
+    left: 10%;
+    color: var(--noinfo-cue-color, #C65D3B);
+}
+
+.gacha-slider-limit-label-right {
+    left: 90%;
+    color: var(--info-cue-color, #3498DB);
+}
+
+.gacha-slider-input-zone {
+    --slider-thumb-half: 0.7vw;
+    position: absolute;
+    left: calc(10% - var(--slider-thumb-half));
+    width: calc(80% + 2 * var(--slider-thumb-half));
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+}
+
+.gacha-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 2.2vh;
+    background: transparent;
+    border-radius: 6px;
+    pointer-events: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    z-index: 2;
+}
+
+.gacha-slider::-webkit-slider-runnable-track {
+    background: transparent;
+    height: 2.2vh;
+    border-radius: 6px;
+}
+
+.gacha-slider::-moz-range-track {
+    background: transparent;
+    height: 2.2vh;
+    border-radius: 6px;
+}
+
+.gacha-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1.4vw;
+    height: 1.4vw;
+    background: #555;
+    cursor: pointer;
+    border-radius: 0;
+    border: none;
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    margin-top: 0.55vh;
+    z-index: 10;
+    pointer-events: auto;
+    position: relative;
+}
+
+.gacha-slider::-moz-range-thumb {
+    width: 1.4vw;
+    height: 1.4vw;
+    background: #555;
+    cursor: pointer;
+    border-radius: 0;
+    border: none;
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    margin-top: 0.55vh;
+    z-index: 10;
+    pointer-events: auto;
+}
+
+.gacha-slider:disabled {
+    opacity: 0.5;
+}
+
+.gacha-question-container {
+    display: none;
+}
+
+.gacha-slider-container .info-cue-highlight {
+    color: var(--info-cue-color, #3498DB);
+}
+
+.gacha-slider-labels {
+    display: none;
+}
+
+.gacha-bid-result {
+    display: none;
+}
+
+.gacha-pay-message {
+    display: none;
+}
+
+.gacha-live-value {
+    display: none !important;
+}
+
+.gacha-live-value::before {
+    display: none !important;
+}
+
+.gacha-user-label {
+    position: absolute;
+    top: calc(50% + var(--gacha-slider-track-half-height) + 0.55vh + var(--gacha-slider-thumb-size) + var(--gacha-slider-result-label-gap));
+    bottom: auto;
+    font-family: var(--gacha-ui-font-family);
+    font-size: var(--gacha-slider-label-size);
+    font-weight: bold;
+    transform: translate(-50%, 0);
+    text-align: center;
+    white-space: nowrap;
+    color: #333;
+    z-index: 5;
+}
+
+.gacha-computer-label {
+    position: absolute;
+    top: calc(50% - var(--gacha-slider-thumb-size) - 0.35vh);
+    bottom: auto;
+    font-family: var(--gacha-ui-font-family);
+    font-size: var(--gacha-slider-label-size);
+    font-weight: bold;
+    color: #c0392b;
+    transform: translate(-50%, calc(-100% - var(--gacha-slider-result-label-gap)));
+    text-align: center;
+    white-space: nowrap;
+    z-index: 5;
+    padding: 0.25vh 0.55vw;
+    background: #fff;
+    border-radius: 0.2vw;
+    box-shadow: 0 0 0 2px #fff;
+}
+
+.gacha-computer-thumb {
+    position: absolute;
+    width: 1.4vw;
+    height: 1.4vw;
+    background: #c0392b;
+    clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+    top: calc(50% - 1.4vw - 0.35vh);
+    transform: translateX(-50%);
+    z-index: 10;
+}
+
+/* /////////////////////////////////////////// */
+/* EXPERIMENT TIMER */
+
+.experiment-timer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    padding: 0.55vh 0.8vw 1.55vh;
+    z-index: 9999;
+    box-shadow: 0 0.1vh 0.35vh rgba(0, 0, 0, 0.08);
+}
+
+.timer-bar-track {
+    position: relative;
+    width: 100%;
+    height: 3.2vh;
+    background: #e8e8e8;
+    border-radius: 1.2vh;
+    overflow: visible;
+}
+
+.timer-bar-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(to right, #e74c3c, #f39c12, #4CAF50);
+    border-radius: 1.2vh;
+    will-change: width;
+}
+
+.timer-handle {
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    pointer-events: none;
+    will-change: left;
+}
+
+.timer-clock {
+    color: #222;
+    font-size: clamp(14px, 1.6vw, 22px);
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    line-height: 1;
+    text-shadow: none;
+}
+
+.timer-remaining-caption,
+.timer-pause-label {
+    position: absolute;
+    top: calc(100% + 0.25vh);
+    left: 50%;
+    transform: translateX(-50%);
+    color: #666;
+    font-size: clamp(9px, 0.85vw, 12px);
+    font-weight: bold;
+    white-space: nowrap;
+    line-height: 1;
+    display: none;
+}
+
+.timer-remaining-caption {
+    letter-spacing: 0.03em;
+}
+
+.experiment-timer.ta-timer .timer-remaining-caption {
+    display: block;
+}
+
+.timer-handle.timer-paused .timer-remaining-caption {
+    display: none;
+}
+
+.timer-pause-label {
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.timer-pause-label.visible {
+    display: block;
+}
+
+/* /////////////////////////////////////////// */
+/* EXIT / STAY DECISION */
+
+.exit-stay-container {
+    position: fixed;
+    bottom: 4%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    text-align: center;
+    animation: none;
+}
+
+@keyframes fadeSlideUp {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(2vh); }
+    100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.exit-stay-prompt {
+    font-size: 1.8vw;
+    font-weight: bold;
+    color: #222;
+    margin-bottom: 1vh;
+}
+
+.exit-stay-cost {
+    font-size: 1.2vw;
+    color: #888;
+    margin-bottom: 1.5vh;
+    font-variant-numeric: tabular-nums;
+}
+
+.exit-stay-btn {
+    padding: 1.5vh 3vw;
+    font-size: 1.8vw;
+    font-weight: bold;
+    border: 0.25vw solid;
+    border-radius: 1vw;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    min-width: 14vw;
+    line-height: 1.4;
+    outline: none;
+}
+
+.exit-stay-btn:hover {
+    transform: scale(1.06);
+}
+
+.exit-stay-btn:active {
+    transform: scale(0.97);
+}
+
+/* Image-only exit button (TA) — no red box around icon */
+.exit-stay-btn.exit-btn-with-image {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    min-width: 0;
+    line-height: 0;
+}
+
+.exit-stay-btn.exit-btn-with-image:hover {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    transform: scale(1.04);
+}
+
+.exit-stay-btn.exit-btn-with-image:active {
+    transform: scale(0.98);
+}
+
+.exit-btn {
+    background: #fff0f0;
+    color: #c0392b;
+    border-color: #e74c3c;
+    box-shadow: 0 0.3vh 1vh rgba(231, 76, 60, 0.25);
+}
+
+.exit-btn:hover {
+    background: #fde3e0;
+    box-shadow: 0 0.4vh 1.4vh rgba(231, 76, 60, 0.35);
+}
+
+.exit-stay-icon {
+    font-size: 2.2vw;
+    display: block;
+    margin-bottom: 0.3vh;
+}
+
+.exit-stay-sub {
+    font-size: 1vw;
+    font-weight: normal;
+    opacity: 0.7;
+}
+
+/* /////////////////////////////////////////// */
+/* INFO + EXIT PHASE — flex-stacked, vertically centered, no overlap, no jump */
+
+/* Apply flex centering ALWAYS so the machine doesn't move when the
+   info-exit-phase class is added (no animated "jump"). */
+#gachaChoice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding: 1vh 0;
+}
+
+/* Pin machine to viewport center — text overlays never shift layout */
+#gachaChoice.machine-stage-fixed {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    max-width: 100vw;
+    min-height: 0;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    z-index: 12;
+    pointer-events: none;
+    background: #fff;
+}
+
+#gachaChoice.machine-stage-fixed .gacha-wrapper,
+#gachaChoice.machine-stage-fixed .machine-container,
+#gachaChoice.machine-stage-fixed .gacha-prompt {
+    pointer-events: auto;
+}
+
+#gachaChoice.machine-stage-fixed .machine-container {
+    margin-bottom: 0;
+}
+
+#gachaChoice .gacha-wrapper {
+    width: auto;
+    height: auto;
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 4vw;
+}
+
+/* CA choice phase — two machines side by side */
+#gachaChoice.ca-choice-phase .gacha-wrapper {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    justify-content: center;
+    gap: clamp(24px, 6vw, 96px);
+    width: 100%;
+}
+
+#gachaChoice.ca-choice-phase .machine-container {
+    flex: 0 0 auto;
+}
+
+/* After machine selection — single machine centered */
+#gachaChoice.single-machine-focus .gacha-wrapper,
+#gachaChoice .gacha-wrapper.single-machine-focus {
+    justify-content: center;
+    width: 100%;
+}
+
+#gachaChoice.single-machine-focus .machine-container.machine-centered,
+#gachaChoice .gacha-wrapper.single-machine-focus .machine-container.machine-centered {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Machine flows naturally inside the flex column — never animates or jumps. */
+#gachaChoice .machine-container {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    transform: scale(0.78);
+    transform-origin: center top;
+    transition: none;
+    /* compensate for unused empty space below the visually-scaled machine */
+    margin-bottom: -6vh;
+}
+
+#gachaChoice #machine-left.machine-centered {
+    left: auto;
+    top: auto;
+    transform: scale(0.78);
+}
+
+#gachaChoice .machine-container:hover {
+    transform: scale(0.78);
+    filter: none;
+}
+
+#gachaChoice .gacha-ball.ball-face-large,
+.gacha-ball.ball-face-large {
+    font-size: clamp(24px, 3.4vw, 44px);
+}
+
+/* Info-exit phase — text cue is on body; keep exit controls positioned separately */
+#gachaChoice.info-exit-phase .gacha-info-display {
+    display: none !important;
+}
+
+#gachaChoice.info-exit-phase .exit-stay-container {
+    position: fixed;
+    bottom: 4%;
+    top: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    width: auto;
+    max-width: 94vw;
+    padding: 0;
+}
+
+#gachaChoice.info-exit-phase .exit-stay-prompt {
+    font-family: var(--gacha-ui-font-family);
+    font-size: var(--gacha-message-size);
+    font-weight: bold;
+    color: #222;
+    margin-bottom: 0.9vh;
+    line-height: 1.35;
+    white-space: nowrap;
+}
+
+#gachaChoice.info-exit-phase .exit-stay-cost {
+    display: none;
+}
+
+#gachaChoice.info-exit-phase .exit-stay-btn {
+    padding: 1.05vh 2.6vw;
+    font-size: clamp(17px, 1.8vw, 24px);
+    min-width: min(180px, 42vw);
+    border-width: 0.18vw;
+}
+
+#gachaChoice.info-exit-phase .exit-stay-icon {
+    font-size: clamp(20px, 2.2vw, 30px);
+    margin-bottom: 0.25vh;
+}
+
+#gachaChoice.info-exit-phase .exit-stay-sub {
+    font-size: clamp(13px, 1.25vw, 17px);
+}
+
+/* When using a custom uploaded image as the exit button */
+#gachaChoice.info-exit-phase .exit-btn-with-image {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    padding: 0.2vh 0.6vw;
+}
+
+#gachaChoice.info-exit-phase .exit-btn-with-image:hover {
+    background: transparent;
+    border-color: transparent;
+    transform: scale(1.04);
+}
+
+.exit-btn-image {
+    display: block;
+    width: clamp(120px, 18vw, 200px);
+    max-width: 38vw;
+    height: auto;
+    margin: 0;
+}
+
+/* TA exit on body overlay — always clickable, not blocked by machine-stage-fixed */
+.exit-stay-container.exit-stay-side {
+    position: fixed;
+    top: 50%;
+    left: calc(50% + clamp(80px, 9vw, 130px));
+    bottom: auto;
+    transform: translateY(-50%);
+    margin: 0;
+    z-index: 50;
+    width: auto;
+    max-width: none;
+    padding: 0;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8vh;
+}
+
+.exit-stay-container.exit-stay-side .exit-stay-prompt {
+    font-family: var(--gacha-ui-font-family);
+    font-size: var(--gacha-message-size);
+    font-weight: bold;
+    color: #222;
+    margin: 0;
+    line-height: 1.35;
+    white-space: normal;
+    max-width: min(42vw, 300px);
+    text-align: center;
+    pointer-events: none;
+}
+
+.exit-stay-container {
+    pointer-events: auto;
+}
+
+.exit-stay-btn {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+/* TA exit layout — exit button fixed to the right; machine stays screen-centered */
+#gachaChoice.ta-exit-layout .gacha-wrapper {
+    justify-content: center;
+    width: 100%;
+}
+
+#gachaChoice.ta-exit-layout .exit-stay-container.exit-stay-side {
+    position: fixed;
+    top: 50%;
+    left: calc(50% + clamp(80px, 9vw, 130px));
+    bottom: auto;
+    transform: translateY(-50%);
+    margin: 0;
+    z-index: 50;
+}
+
+#gachaChoice.info-exit-phase.ta-exit-layout .exit-stay-container.exit-stay-side {
+    position: fixed;
+    top: 50%;
+    left: calc(50% + clamp(80px, 9vw, 130px));
+    bottom: auto;
+    transform: translateY(-50%);
+    margin: 0;
+    width: auto;
+    max-width: none;
+    padding: 0;
+}
+
+#gachaChoice .dome-ball:not(.dome-ball-example) {
+    font-size: clamp(8px, 0.6vw, 11px);
+}
+
+/* Comprehension questions — centered on screen */
+html.comprehension-questions-mode .jspsych-display-element {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100%;
+}
+
+html.comprehension-questions-mode .jspsych-content-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+}
+
+html.comprehension-questions-mode .jspsych-content {
+    width: 100%;
+    max-width: min(980px, 96vw);
+    margin: 0 auto;
+    text-align: center;
+}
+
+html.comprehension-questions-mode #jspsych-survey-multi-choice-form {
+    width: 100%;
+    margin: 0 auto;
+}
+
+html.comprehension-questions-mode .jspsych-survey-multi-choice-question {
+    text-align: center !important;
+    margin-top: 0 !important;
+    margin-bottom: 1.5em !important;
+}
+
+html.comprehension-questions-mode .jspsych-survey-multi-choice-text.survey-multi-choice {
+    text-align: center;
+    font-size: clamp(17px, 1.6vw, 22px);
+    line-height: 1.45;
+}
+
+html.comprehension-questions-mode .jspsych-survey-multi-choice-text.survey-multi-choice img,
+html.comprehension-questions-mode .jspsych-survey-multi-choice-text.survey-multi-choice video {
+    display: block;
+    margin: 0 auto 1.2em;
+}
+
+.instruction-video-wrap {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    cursor: pointer;
+    vertical-align: top;
+}
+
+.instruction-video-wrap .instruction-video {
+    display: block;
+    vertical-align: top;
+}
+
+.instruction-video-wrap-fill {
+    width: 100%;
+    height: 100%;
+}
+
+.instruction-video-wrap-fill .instruction-video {
+    width: 100%;
+    height: 100%;
+}
+
+.instruction-video-play-hint {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    padding: 0.45em 0.9em;
+    background: rgba(0, 0, 0, 0.62);
+    color: #fff;
+    font-size: clamp(13px, 1.2vw, 16px);
+    font-weight: bold;
+    border-radius: 6px;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+    white-space: nowrap;
+}
+
+.instruction-video-wrap.is-playing .instruction-video-play-hint,
+.instruction-video-wrap.is-ended .instruction-video-play-hint {
+    opacity: 0;
+}
+
+.instruction-stage4-video-grid[data-sync-session-active="true"] .instruction-video-wrap.is-ended .instruction-video-play-hint {
+    opacity: 0;
+}
+
+.instruction-video-wrap:not(.is-playing):not(.is-ended):hover .instruction-video-play-hint {
+    opacity: 1;
+}
+
+html.comprehension-questions-mode .instruction-video-wrap {
+    margin: 0 auto 1.2em;
+}
+
+html.comprehension-questions-mode .jspsych-survey-multi-choice-option {
+    max-width: min(860px, 92vw);
+    margin: 0.45em auto;
+    line-height: 1.45;
+    text-align: left;
+}
+
+html.comprehension-questions-mode .jspsych-survey-multi-choice-option label {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65em;
+    text-align: left;
+}
+
+html.comprehension-questions-mode #jspsych-survey-multi-choice-next {
+    display: block;
+    margin: 2em auto 0;
+    float: none;
+}
+
+html.comprehension-questions-mode .jspsych-html-button-response-stimulus,
+html.comprehension-questions-mode .jspsych-instructions-nav {
+    max-width: min(920px, 94vw);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+html.comprehension-questions-mode .jspsych-btn {
+    margin: 0.5em;
+}
+
+/* Transition / notification pages — match instruction & question typography */
+.experiment-prose-page {
+    max-width: min(980px, 96vw);
+    margin: 0 auto;
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #222;
+    line-height: 1.35;
+}
+
+.experiment-prose-page .experiment-prose-text {
+    font-weight: 400;
+}
+
+html.experiment-prose-page-mode .jspsych-display-element,
+html.experiment-prose-page-mode .jspsych-content-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100%;
+}
+
+html.experiment-prose-page-mode .jspsych-content {
+    width: 100%;
+    max-width: min(980px, 96vw);
+    margin: 0 auto;
+}
+
+html.experiment-prose-page-mode .jspsych-btn {
+    margin: 10px 16px;
+    padding: 12px 24px;
+    font-size: 20px;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.experiment-prose-page .experiment-prose-timer {
+    font-size: 40px;
+    font-weight: bold;
+    margin-top: 24px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Fullscreen exit reminder */
+#fullscreen-exit-reminder {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+#fullscreen-exit-reminder.visible {
+    display: flex;
+}
+
+.fullscreen-exit-reminder-panel {
+    background: #fff;
+    border-radius: 12px;
+    padding: 28px 32px;
+    max-width: min(520px, 92vw);
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.fullscreen-exit-reminder-title {
+    margin: 0 0 12px;
+    font-size: clamp(22px, 2.2vw, 30px);
+    font-weight: bold;
+    color: #222;
+}
+
+.fullscreen-exit-reminder-text {
+    margin: 0 0 20px;
+    font-size: clamp(16px, 1.5vw, 20px);
+    line-height: 1.45;
+    color: #333;
+}
+
+.fullscreen-reenter-btn {
+    font-size: clamp(16px, 1.4vw, 20px);
+    padding: 10px 22px;
+}
+
+/* Utility */
+.hidden {
+    display: none !important;
+}

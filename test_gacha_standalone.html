@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Gacha Machine Test — Exit/Stay + Timer</title>
+<script src="https://unpkg.com/jspsych@7.3.4"></script>
+<link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet">
+<style>
+html, body {
+  margin:0; padding:0; height:100%; overflow:hidden;
+  background:#fff; font-family:Arial, Helvetica, sans-serif;
+}
+html:fullscreen, html:-webkit-full-screen, html:-moz-full-screen { background:#fff; }
+.jspsych-display-element,
+.jspsych-content-wrapper,
+.jspsych-content,
+#jspsych-target,
+#gachaChoice {
+  background:#fff !important;
+}
+.jspsych-display-element { min-height:100%; width:100%; }
+:root {
+  --gacha-ui-font-family: Arial, Helvetica, sans-serif;
+  --gacha-message-size: clamp(18px, 1.85vw, 26px);
+  --gacha-slider-label-size: clamp(13px, 1.25vw, 17px);
+  --gacha-slider-top-label-offset: 5.8vh;
+  --gacha-message-area-bottom: 24%;
+  --gacha-message-area-height: 8vh;
+  --gacha-message-area-width: min(98vw, 980px);
+}
+.gacha-text-cue {
+  position:fixed; bottom:var(--gacha-message-area-bottom); left:50%; transform:translateX(-50%);
+  width:var(--gacha-message-area-width); max-width:98vw; min-height:var(--gacha-message-area-height);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--gacha-ui-font-family); font-size:var(--gacha-message-size);
+  font-weight:bold; text-align:center; line-height:1.35; color:#222;
+  box-sizing:border-box; z-index:40; margin:0; padding:0 1vw; pointer-events:none;
+  white-space:nowrap;
+}
+.gacha-text-cue .cue-name { display:inline; margin:0 0.28em; font-weight:bold; }
+.gacha-text-cue .cue-amount { display:inline; margin:0 0.28em; font-weight:bold; }
+.exit-stay-prompt .cue-amount { display:inline; margin:0 0.28em; font-weight:bold; }
+.gacha-text-cue.hidden { display:none; }
+.gacha-text-cue.gacha-text-cue-center {
+  top:50%; bottom:auto; transform:translate(-50%,-50%);
+  white-space:normal; max-width:min(90vw,720px);
+}
+.gacha-text-cue .gacha-info-line { display:inline; }
+.gacha-text-cue .gacha-info-muted { color:#222; }
+.gacha-prompt, .gacha-info-display { display:none !important; }
+#test-controls {
+  position:fixed; top:0; left:0; right:0; height:40px;
+  background:#333; color:white; padding:0 16px;
+  display:flex; gap:12px; align-items:center;
+  z-index:99999; font-family:sans-serif; font-size:14px;
+}
+#test-controls button { padding:6px 14px; cursor:pointer; border:none; border-radius:4px; font-size:13px; background:#4CAF50; color:white; }
+#test-controls button:hover { background:#45a049; }
+#test-controls select, #test-controls input { padding:4px 8px; font-size:13px; }
+#jspsych-target { position:fixed; top:40px; left:0; right:0; bottom:0; }
+
+/* ===== Fixation ===== */
+#fixation-container { display:inline-block; font-size:10vh; }
+#fixation { position:relative; cursor:pointer; }
+#fixation:hover { font-size:12vh; filter:brightness(1.1); transition: font-size 0.3s; }
+#trialInfo { text-align:center; font-size:2.5vh; margin-top:1vh; }
+.fixation-time-remaining { text-align:center; font-size:2.1vh; font-weight:bold; font-variant-numeric:tabular-nums; color:#444; margin-top:0.6vh; white-space:nowrap; }
+
+/* ===== Gacha Machine ===== */
+.gacha-wrapper { width:100%; height:100%; }
+.machine-container {
+  position:absolute; top:45%; transform:translateY(-50%);
+  cursor:pointer; z-index:1;
+  transition: transform 400ms ease-in-out, left 400ms ease-in-out, right 400ms ease-in-out;
+}
+.machine-container:hover { transform:translateY(-50%) scale(1.06); filter:brightness(1.08); transition:transform 0.3s, filter 0.3s; }
+.machine-container.machine-disabled { cursor:not-allowed; pointer-events:none; }
+#machine-left { left:8%; }
+#machine-right { right:8%; }
+#machine-left.machine-centered { left:50%; transform:translate(-50%,-50%); }
+#machine-right.machine-centered { right:auto; left:50%; transform:translate(-50%,-50%); }
+.gacha-machine { position:relative; width:18vw; margin:0 auto; }
+.gacha-dome {
+  width:16vw; height:16vw; border-radius:50%; border:0.5vw solid #888;
+  position:relative; margin:0 auto; overflow:hidden; box-sizing:border-box;
+}
+.gacha-dome-shine { display:none; }
+.mini-ball { display:none; }
+.gacha-dome.dome-revealing { transition:none; }
+.dome-ball { position:absolute; width:16%; height:16%; border-radius:50%; opacity:0; transform:translate(-50%,-50%) scale(0.8); transition:opacity 0.5s ease, transform 0.5s ease; pointer-events:none; display:flex; align-items:center; justify-content:center; font-size:0.7vw; font-weight:bold; color:white; text-shadow:none; box-shadow:none; }
+.dome-ball.ball-visible { opacity:1; transform:translate(-50%,-50%) scale(1); }
+.dome-ball.dome-ball-example {
+  width:24%; height:24%;
+  font-size:clamp(20px,2.2vw,34px) !important;
+  font-weight:bold; z-index:6;
+}
+.dome-ball.dome-ball-example.ball-visible { transform:translate(-50%,-50%) scale(1.05); }
+@keyframes domeBallShuffle {
+  0%,100% { transform:translate(-50%,-50%) scale(0.84) rotate(0deg); }
+  20% { transform:translate(-50%,-50%) scale(0.92) rotate(-16deg); }
+  40% { transform:translate(-50%,-50%) scale(0.88) rotate(12deg); }
+  60% { transform:translate(-50%,-50%) scale(0.95) rotate(-10deg); }
+  80% { transform:translate(-50%,-50%) scale(0.9) rotate(8deg); }
+}
+.gacha-dome.dome-shuffling .dome-ball { opacity:1; animation:domeBallShuffle 0.6s ease-in-out; }
+.gacha-neck { width:10vw; height:1.5vh; margin:-0.3vh auto 0; background:#aaa; border-left:0.5vw solid #888; border-right:0.5vw solid #888; position:relative; z-index:2; }
+.gacha-body {
+  width:13vw; height:8vh; margin:0 auto; border:0.5vw solid #888; border-top:none;
+  position:relative; z-index:2; display:flex; align-items:center; justify-content:center; border-radius:0 0 0.5vw 0.5vw;
+}
+.gacha-knob { width:3vw; height:3vw; border-radius:50%; background:#aaa; border:0.2vw solid #777; box-shadow:none; }
+.gacha-base { width:15vw; height:3vh; margin:0 auto; background:#666; border-radius:0 0 0.8vw 0.8vw; position:relative; z-index:2; }
+.gacha-slot { width:5vw; height:5vh; background:#444; position:absolute; bottom:-5vh; left:50%; transform:translateX(-50%); border-radius:0 0 1vw 1vw; border:0.2vw solid #555; border-top:none; }
+.machine-indicator { display:none; }
+.gacha-ball-zone { width:100%; display:flex; justify-content:center; margin-top:6vh; min-height:7vw; position:relative; }
+.gacha-ball {
+  width:5.5vw; height:5.5vw; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:1.8vw; font-weight:bold; color:white;
+  text-shadow:none;
+  box-shadow:none;
+  position:relative; z-index:10;
+}
+.ball-content { position:relative; z-index:11; user-select:none; }
+
+@keyframes ballDrop {
+  0% { transform:translateY(-18vh) scale(0.4); opacity:0; }
+  15% { opacity:1; transform:translateY(-10vh) scale(0.7); }
+  50% { transform:translateY(0) scale(1); }
+  65% { transform:translateY(-1.5vh) scale(1); }
+  80% { transform:translateY(0) scale(1); }
+  90% { transform:translateY(-0.4vh) scale(1); }
+  100% { transform:translateY(0) scale(1); }
+}
+.gacha-ball.ball-dropping { animation:ballDrop 1.4s cubic-bezier(0.22,0.61,0.36,1) forwards; }
+@keyframes ballDeposit {
+  0% { transform:translateY(0) scale(1); opacity:1; }
+  20% { transform:translateY(-2vh) scale(1.05); opacity:1; }
+  100% { transform:translateY(-18vh) scale(0.4); opacity:0; }
+}
+.gacha-ball.ball-depositing { animation:ballDeposit 1.4s cubic-bezier(0.22,0.61,0.36,1) forwards; }
+.gacha-deposit-message { display:none; }
+.participant-wallet {
+  position:fixed; bottom:8%; left:50%; transform:translateX(-50%); z-index:25;
+  display:flex; flex-direction:column; align-items:center; gap:0.5vh; pointer-events:none;
+}
+.wallet-icon {
+  width:clamp(56px,8vw,88px); height:clamp(44px,6vw,66px);
+  background:linear-gradient(145deg,#5c4a3a,#3d2e24);
+  border-radius:12px 12px 16px 16px; border:3px solid #2a2018;
+  box-shadow:0 4px 12px rgba(0,0,0,0.25); position:relative;
+}
+.wallet-icon::before {
+  content:""; position:absolute; top:15%; left:10%; right:10%; height:35%;
+  background:#4a3828; border-radius:6px;
+}
+.wallet-label { font-family:var(--gacha-ui-font-family); font-size:clamp(13px,1.2vw,18px); font-weight:bold; color:#333; }
+.participant-wallet.wallet-receiving .wallet-icon { animation:walletPulse 0.45s ease; }
+@keyframes walletPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.12); } }
+@keyframes coinFlyToWallet {
+  0% { left:var(--fly-start-x); top:var(--fly-start-y); transform:translate(-50%,-50%) scale(1); opacity:1; }
+  100% { left:var(--fly-end-x); top:var(--fly-end-y); transform:translate(-50%,-50%) scale(0.55); opacity:0.9; }
+}
+.gacha-flying-coin {
+  position:fixed; left:var(--fly-start-x); top:var(--fly-start-y);
+  transform:translate(-50%,-50%); font-size:clamp(26px,3.2vw,44px); line-height:1;
+  pointer-events:none; z-index:26; user-select:none;
+}
+.gacha-flying-coin.coin-flying-to-wallet {
+  animation:coinFlyToWallet 2s cubic-bezier(0.33,0,0.2,1) forwards;
+}
+@keyframes machineShake {
+  0%,100% { transform:translateX(0); }
+  15% { transform:translateX(-0.3vw); }
+  30% { transform:translateX(0.3vw); }
+  45% { transform:translateX(-0.2vw); }
+  60% { transform:translateX(0.2vw); }
+  75% { transform:translateX(-0.1vw); }
+  90% { transform:translateX(0.1vw); }
+}
+.gacha-machine.shaking { animation:machineShake 0.6s ease-in-out; }
+@keyframes ballWobble {
+  0%   { transform:rotate(0deg) scale(1); }
+  15%  { transform:rotate(12deg) scale(1.04); }
+  30%  { transform:rotate(-10deg) scale(1.02); }
+  45%  { transform:rotate(8deg) scale(1.05); }
+  60%  { transform:rotate(-6deg) scale(1.02); }
+  75%  { transform:rotate(4deg) scale(1.04); }
+  90%  { transform:rotate(-2deg) scale(1.01); }
+  100% { transform:rotate(0deg) scale(1); }
+}
+.gacha-ball.ball-wobbling { animation:ballWobble 1.2s ease-in-out infinite; }
+@keyframes ballPendulum {
+  0%, 100% { transform:rotate(-9deg); }
+  50% { transform:rotate(9deg); }
+}
+.gacha-ball-zone .gacha-ball.ball-pendulum {
+  transform-origin:50% -80%;
+  animation:ballPendulum 1.7s ease-in-out infinite;
+}
+.gacha-ball-zone .gacha-ball.ball-pendulum.ball-face-large {
+  animation:ballPendulum 1.7s ease-in-out infinite;
+}
+@keyframes ballPulse { 0% { transform:scale(1); } 50% { transform:scale(1.2); } 100% { transform:scale(1); } }
+.gacha-ball.ball-reveal { animation:ballPulse 0.5s ease-in-out; }
+
+.gacha-info-line { display:block; }
+.gacha-info-muted { color:#222; }
+#gachaChoice { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; box-sizing:border-box; padding:1vh 0; }
+#gachaChoice.machine-stage-fixed {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:100%; max-width:100vw; min-height:0; height:auto; padding:0; margin:0;
+  z-index:12; pointer-events:none; background:#fff;
+}
+#gachaChoice.machine-stage-fixed .gacha-wrapper,
+#gachaChoice.machine-stage-fixed .machine-container,
+#gachaChoice.machine-stage-fixed .gacha-prompt { pointer-events:auto; }
+#gachaChoice.machine-stage-fixed .machine-container { margin-bottom:0; }
+#gachaChoice .gacha-wrapper { width:auto; height:auto; flex:0 0 auto; display:flex; flex-direction:row; flex-wrap:nowrap; align-items:flex-end; justify-content:center; gap:4vw; }
+#gachaChoice.ca-choice-phase .gacha-wrapper { flex-direction:row; flex-wrap:nowrap; align-items:flex-end; justify-content:center; gap:clamp(24px,6vw,96px); width:100%; }
+#gachaChoice.ca-choice-phase .machine-container { flex:0 0 auto; }
+#gachaChoice.single-machine-focus .gacha-wrapper, #gachaChoice .gacha-wrapper.single-machine-focus { justify-content:center; width:100%; }
+#gachaChoice.single-machine-focus .machine-container.machine-centered, #gachaChoice .gacha-wrapper.single-machine-focus .machine-container.machine-centered { margin-left:auto; margin-right:auto; }
+#gachaChoice .machine-container { position:relative; top:auto; left:auto; right:auto; transform:scale(0.78); transform-origin:center top; transition:none; margin-bottom:-6vh; }
+#gachaChoice #machine-left.machine-centered { left:auto; top:auto; transform:scale(0.78); }
+#gachaChoice .machine-container:hover { transform:scale(0.78); filter:none; }
+#gachaChoice .gacha-ball.ball-face-large,
+.gacha-ball.ball-face-large { font-size:clamp(24px,3.4vw,44px); }
+#gachaChoice.info-exit-phase .gacha-info-display { display:none !important; }
+#gachaChoice.info-exit-phase .exit-stay-container { position:fixed; bottom:4%; top:auto; left:50%; transform:translateX(-50%); margin:0; width:auto; max-width:94vw; padding:0; }
+#gachaChoice.info-exit-phase .exit-stay-prompt {
+  font-family:var(--gacha-ui-font-family); font-size:var(--gacha-message-size);
+  font-weight:bold; color:#222; margin-bottom:0.9vh; line-height:1.35; white-space:nowrap;
+}
+#gachaChoice.info-exit-phase .exit-stay-cost { display:none; }
+#gachaChoice.info-exit-phase .exit-stay-btn { padding:1.05vh 2.6vw; font-size:clamp(17px,1.8vw,24px); min-width:min(180px,42vw); border-width:0.18vw; }
+#gachaChoice.info-exit-phase .exit-stay-icon { font-size:clamp(20px,2.2vw,30px); margin-bottom:0.25vh; }
+#gachaChoice.info-exit-phase .exit-stay-sub { font-size:clamp(13px,1.25vw,17px); }
+#gachaChoice.info-exit-phase .exit-btn-with-image { background:transparent; border-color:transparent; box-shadow:none; padding:0.2vh 0.6vw; }
+#gachaChoice.info-exit-phase .exit-btn-with-image:hover { background:transparent; border-color:transparent; transform:scale(1.04); }
+.exit-btn-image { display:block; width:clamp(120px,18vw,200px); max-width:38vw; height:auto; margin:0; }
+#gachaChoice.ta-exit-layout .gacha-wrapper { justify-content:center; width:100%; }
+#gachaChoice.ta-exit-layout .exit-stay-container.exit-stay-side {
+  position:fixed; top:50%; left:calc(50% + clamp(80px, 9vw, 130px)); bottom:auto;
+  transform:translateY(-50%); margin:0; z-index:50;
+  display:flex; flex-direction:column; align-items:center; gap:0.8vh;
+}
+#gachaChoice.info-exit-phase.ta-exit-layout .exit-stay-container.exit-stay-side {
+  position:fixed; top:50%; left:calc(50% + clamp(80px, 9vw, 130px)); bottom:auto;
+  transform:translateY(-50%); margin:0; width:auto; max-width:none; padding:0;
+}
+.exit-stay-container.exit-stay-side .exit-stay-prompt {
+  font-family:var(--gacha-ui-font-family); font-size:var(--gacha-message-size);
+  font-weight:bold; color:#222; margin:0; line-height:1.35;
+  white-space:normal; max-width:min(42vw, 300px); text-align:center; pointer-events:none;
+}
+#gachaChoice .dome-ball:not(.dome-ball-example) { font-size:clamp(8px,0.6vw,11px); }
+.sample-draws-container { position:fixed; top:8%; right:5%; display:flex; flex-direction:column; gap:1vh; align-items:center; z-index:20; }
+.sample-draws-title { font-size:1.2vw; font-weight:bold; margin-bottom:0.5vh; text-align:center; }
+.sample-draw-ball {
+  width:4vw; height:4vw; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:1.2vw; font-weight:bold; color:white;
+  text-shadow:none; box-shadow:none;
+  opacity:0; transition:opacity 0.4s ease-in;
+}
+.sample-draw-ball.visible { opacity:1; }
+.gacha-reward-display { position:fixed; bottom:3%; left:50%; transform:translateX(-50%); font-size:2.2vw; font-weight:bold; text-align:center; white-space:nowrap; z-index:20; }
+
+/* ===== Gacha Slider ===== */
+.gacha-slider-container {
+  position:fixed; bottom:10%; left:50%; transform:translateX(-50%);
+  width:min(92vw, 1100px); z-index:30;
+  display:flex; flex-direction:row; align-items:center; gap:clamp(8px, 1.2vw, 18px);
+}
+.gacha-slider-end-label {
+  flex:0 0 auto; width:auto; max-width:none;
+  font-family:var(--gacha-ui-font-family); font-size:var(--gacha-slider-label-size);
+  font-weight:bold; line-height:1.1; text-align:center; pointer-events:none;
+  display:flex; flex-direction:column; align-items:center; gap:0.15vh;
+}
+.gacha-slider-end-label-line { line-height:1.1; white-space:nowrap; }
+.gacha-slider-end-label-left { color:var(--noinfo-cue-color, #C65D3B); }
+.gacha-slider-end-label-right { color:var(--info-cue-color, #3498DB); }
+.gacha-slider-track-wrapper { position:relative; flex:1 1 auto; min-width:0; width:100%; height:12.5vh; display:flex; align-items:center; --gacha-slider-thumb-size:1.4vw; --gacha-slider-track-half-height:1.1vh; --gacha-slider-result-label-gap:2px; }
+.gacha-slider-zero-label { left:50%; color:#666; }
+.gacha-slider-limit-label {
+  position:absolute; top:calc(50% - var(--gacha-slider-top-label-offset, 5.8vh));
+  font-family:var(--gacha-ui-font-family); font-size:var(--gacha-slider-label-size);
+  font-weight:bold; transform:translateX(-50%); pointer-events:none; line-height:1.15; z-index:1;
+  display:flex; flex-direction:column; align-items:center; text-align:center;
+}
+.gacha-slider-label-line { display:block; }
+.gacha-slider-label-unit, .gacha-slider-label-desc { font-weight:bold; }
+.gacha-slider-nobid-label { display:none; }
+.gacha-slider-visual-track {
+  position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
+  height:2.2vh; border-radius:6px; z-index:0;
+  background:linear-gradient(to right, var(--noinfo-cue-color,#C65D3B) 0%, #ddd 45%, #fff 50%, #fff 50%, var(--info-cue-color,#3498DB) 100%);
+}
+.gacha-slider-bid-zone {
+  position:absolute; left:10%; right:10%; top:0; bottom:0;
+  border-left:0.12vw solid rgba(0,0,0,0.25); border-right:0.12vw solid rgba(0,0,0,0.25);
+  box-sizing:border-box; pointer-events:none;
+}
+.gacha-slider-limit { position:absolute; top:-0.4vh; bottom:-0.4vh; width:0.12vw; background:rgba(0,0,0,0.35); pointer-events:none; }
+.gacha-slider-limit-left { left:10%; transform:translateX(-50%); }
+.gacha-slider-limit-right { left:90%; transform:translateX(-50%); }
+.gacha-slider-zero-line {
+  position:absolute; top:-0.4vh; bottom:-0.4vh; left:50%; width:0.12vw;
+  background:#888; transform:translateX(-50%); pointer-events:none; z-index:1;
+}
+.gacha-slider-limit-label-left { left:10%; color:var(--noinfo-cue-color,#C65D3B); }
+.gacha-slider-limit-label-right { left:90%; color:var(--info-cue-color,#3498DB); }
+.gacha-slider-input-zone {
+  --slider-thumb-half:0.7vw;
+  position:absolute; left:calc(10% - var(--slider-thumb-half)); width:calc(80% + 2 * var(--slider-thumb-half));
+  top:50%; transform:translateY(-50%); z-index:2;
+}
+.gacha-slider {
+  -webkit-appearance:none; appearance:none; width:100%; height:2.2vh;
+  background:transparent; border-radius:6px; pointer-events:none;
+  margin:0; padding:0; position:relative; z-index:2;
+}
+.gacha-slider::-webkit-slider-runnable-track { background:transparent; height:2.2vh; border-radius:6px; }
+.gacha-slider::-moz-range-track { background:transparent; height:2.2vh; border-radius:6px; }
+.gacha-slider::-webkit-slider-thumb {
+  -webkit-appearance:none; appearance:none; width:1.4vw; height:1.4vw; background:#555;
+  cursor:pointer; border-radius:0; border:none; clip-path:polygon(50% 0%, 0% 100%, 100% 100%);
+  margin-top:0.55vh; z-index:10; pointer-events:auto; position:relative;
+}
+.gacha-slider::-moz-range-thumb {
+  width:1.4vw; height:1.4vw; background:#555; cursor:pointer; border-radius:0; border:none;
+  clip-path:polygon(50% 0%, 0% 100%, 100% 100%); margin-top:0.55vh; z-index:10; pointer-events:auto;
+}
+.gacha-slider:disabled { opacity:0.5; }
+.gacha-question-container { display:none; }
+.gacha-slider-container .info-cue-highlight { color:var(--info-cue-color, #3498DB); }
+.gacha-slider-labels { display:none; }
+.gacha-bid-result { display:none; }
+.gacha-pay-message { display:none; }
+.gacha-live-value { display:none !important; }
+.gacha-live-value::before { display:none !important; }
+.gacha-user-label { position:absolute; top:calc(50% + var(--gacha-slider-track-half-height) + 0.55vh + var(--gacha-slider-thumb-size) + var(--gacha-slider-result-label-gap)); bottom:auto; font-family:var(--gacha-ui-font-family); font-size:var(--gacha-slider-label-size); font-weight:bold; transform:translate(-50%, 0); text-align:center; white-space:nowrap; color:#333; z-index:5; }
+.gacha-computer-label { position:absolute; top:calc(50% - var(--gacha-slider-thumb-size) - 0.35vh); bottom:auto; font-family:var(--gacha-ui-font-family); font-size:var(--gacha-slider-label-size); font-weight:bold; color:#c0392b; transform:translate(-50%, calc(-100% - var(--gacha-slider-result-label-gap))); text-align:center; white-space:nowrap; z-index:5; padding:0.25vh 0.55vw; background:#fff; border-radius:0.2vw; box-shadow:0 0 0 2px #fff; }
+.gacha-computer-thumb { position:absolute; width:1.4vw; height:1.4vw; background:#c0392b; clip-path:polygon(50% 100%, 0% 0%, 100% 0%); top:calc(50% - 1.4vw - 0.35vh); transform:translateX(-50%); z-index:10; }
+.hidden { display:none !important; }
+
+/* ===== Experiment Timer ===== */
+.experiment-timer {
+  position:fixed; top:40px; left:0; right:0;
+  background:#fff; padding:0.55vh 0.8vw 1.55vh;
+  z-index:9998; box-shadow:0 0.1vh 0.35vh rgba(0,0,0,0.08);
+}
+.timer-bar-track {
+  position:relative; width:100%; height:3.2vh;
+  background:#e8e8e8; border-radius:1.2vh; overflow:visible;
+}
+.timer-bar-progress {
+  position:absolute; top:0; left:0; height:100%; width:100%;
+  background:linear-gradient(to right,#e74c3c,#f39c12,#4CAF50);
+  border-radius:1.2vh; will-change:width;
+}
+.timer-handle {
+  position:absolute; top:50%; left:100%;
+  transform:translate(-50%,-50%);
+  z-index:3; pointer-events:none; will-change:left;
+}
+.timer-clock {
+  color:#222; font-size:clamp(14px,1.6vw,22px); font-weight:bold;
+  font-variant-numeric:tabular-nums; white-space:nowrap; line-height:1;
+  text-shadow:none;
+}
+.timer-remaining-caption,
+.timer-pause-label {
+  position:absolute; top:calc(100% + 0.25vh); left:50%; transform:translateX(-50%);
+  color:#666; font-size:clamp(9px,0.85vw,12px); font-weight:bold;
+  white-space:nowrap; line-height:1; display:none;
+}
+.timer-remaining-caption { letter-spacing:0.03em; }
+.experiment-timer.ta-timer .timer-remaining-caption { display:block; }
+.timer-handle.timer-paused .timer-remaining-caption { display:none; }
+.timer-pause-label { letter-spacing:0.03em; text-transform:uppercase; }
+.timer-pause-label.visible { display:block; }
+
+/* ===== Exit / Stay ===== */
+.exit-stay-container { position:fixed; bottom:4%; left:50%; transform:translateX(-50%); z-index:50; text-align:center; animation:none; pointer-events:auto; }
+.exit-stay-container.exit-stay-side {
+  top:50%; left:calc(50% + clamp(80px, 9vw, 130px)); bottom:auto;
+  transform:translateY(-50%); margin:0; width:auto; max-width:none; padding:0;
+}
+.exit-stay-prompt-fixed {
+  position:fixed; bottom:4%; left:50%; transform:translateX(-50%); z-index:50;
+  text-align:center; font-family:var(--gacha-ui-font-family); font-size:var(--gacha-message-size);
+  font-weight:bold; color:#222; margin:0; line-height:1.35; white-space:nowrap; max-width:94vw;
+  pointer-events:none;
+}
+@keyframes fadeSlideUp { 0% { opacity:0; transform:translateX(-50%) translateY(2vh); } 100% { opacity:1; transform:translateX(-50%) translateY(0); } }
+.exit-stay-prompt { font-size:1.8vw; font-weight:bold; color:#222; margin-bottom:1vh; }
+.exit-stay-cost { font-size:1.2vw; color:#888; margin-bottom:1.5vh; font-variant-numeric:tabular-nums; }
+.exit-stay-btn { padding:1.5vh 3vw; font-size:1.8vw; font-weight:bold; border:0.25vw solid; border-radius:1vw; cursor:pointer; transition:transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; min-width:14vw; line-height:1.4; outline:none; pointer-events:auto; }
+.exit-stay-btn.exit-btn-with-image {
+  background:transparent; border:none; box-shadow:none; padding:0; min-width:0; line-height:0;
+}
+.exit-stay-btn.exit-btn-with-image:hover {
+  background:transparent; border:none; box-shadow:none; transform:scale(1.04);
+}
+.exit-stay-btn.exit-btn-with-image:active { transform:scale(0.98); }
+.exit-stay-btn:hover { transform:scale(1.06); }
+.exit-stay-btn:active { transform:scale(0.97); }
+.exit-btn { background:#fff0f0; color:#c0392b; border-color:#e74c3c; box-shadow:0 0.3vh 1vh rgba(231,76,60,0.25); }
+.exit-btn:hover { background:#fde3e0; box-shadow:0 0.4vh 1.4vh rgba(231,76,60,0.35); }
+.exit-stay-icon { font-size:2.2vw; display:block; margin-bottom:0.3vh; }
+.exit-stay-sub { font-size:1vw; font-weight:normal; opacity:0.7; }
+
+/* ===== Reward Wait ===== */
+.reward-wait-container { position:fixed; bottom:6%; left:50%; transform:translateX(-50%); width:40vw; z-index:50; text-align:center; }
+.reward-wait-text { font-size:2vw; font-weight:bold; color:#333; margin-bottom:1.5vh; }
+.reward-wait-bar-bg { width:100%; height:2.5vh; background:#ddd; border-radius:1.25vh; overflow:hidden; box-shadow:inset 0 0.15vh 0.4vh rgba(0,0,0,0.15); }
+.reward-wait-bar-fill { height:100%; width:0%; background:linear-gradient(to right, #3498db, #2ecc71); border-radius:1.25vh; transition:width 0.1s linear; }
+.reward-wait-countdown { font-size:1.4vw; font-weight:bold; color:#555; margin-top:0.8vh; font-variant-numeric:tabular-nums; }
+</style>
+</head>
+<body>
+
+<div id="test-controls">
+  <span><b>Gacha Test (Exit/Stay)</b></span>
+  <label>Environment:
+    <select id="environment-select">
+      <option value="NI">NI — 1 machine, no exit</option>
+      <option value="TA">TA — 1 machine, timer + exit</option>
+      <option value="CA">CA — 2 machines, no exit</option>
+    </select>
+  </label>
+  <label>Info Type:
+    <select id="info-type-select">
+      <option value="random">Random (A→B→C)</option>
+      <option value="A">A — Exact Reward</option>
+      <option value="B">B — Good/Bad Face</option>
+      <option value="C">C — Sample Draws</option>
+    </select>
+  </label>
+  <label>Timer (sec):
+    <input id="timer-input" type="number" value="120" min="30" max="600" style="width:60px;">
+  </label>
+  <label>Wait Cost (sec):
+    <input id="wait-cost-input" type="number" value="8" min="1" max="30" style="width:50px;">
+  </label>
+  <label>Trials/Block:
+    <input id="trials-per-block-input" type="number" value="10" min="1" max="50" style="width:50px;">
+  </label>
+  <button onclick="runTrial()">Start Session</button>
+  <button onclick="if(currentJsPsych) currentJsPsych.endExperiment('Stopped.');">Stop</button>
+  <span id="status-text" style="color:#aaa;">Ready. Set timer & click "Start Session".</span>
+</div>
+
+<div id="jspsych-target"></div>
+
+<script>
+var TEMPLATES = {};
+TEMPLATES["trialStages/fixation.html"] = '<div id="fixation-div"><div id="fixation-container" class="fixation-container"><div id="fixation" class="fixation">+</div></div><div id="trialInfo">[TRIAL_TYPE] [TRIAL_NUM] of [BLOCK_LENGTH]</div><div id="fixationTimeRemaining" class="fixation-time-remaining hidden"></div></div>';
+TEMPLATES["trialStages/gachaChoice.html"] = '<div class="epoch" id="gachaChoice"><div class="gacha-wrapper"><div id="machine-left" class="machine-container"><div class="gacha-machine"><div class="gacha-dome"><div class="gacha-dome-shine"></div></div><div class="gacha-neck"></div><div class="gacha-body"><div class="gacha-knob"></div></div><div class="gacha-base"><div class="gacha-slot"></div></div></div><div class="gacha-ball-zone"><div class="gacha-ball hidden"><span class="ball-content">🪙</span></div></div></div><div id="machine-right" class="machine-container"><div class="gacha-machine"><div class="gacha-dome"><div class="gacha-dome-shine"></div></div><div class="gacha-neck"></div><div class="gacha-body"><div class="gacha-knob"></div></div><div class="gacha-base"><div class="gacha-slot"></div></div></div><div class="gacha-ball-zone"><div class="gacha-ball hidden"><span class="ball-content">🪙</span></div></div></div></div><div class="gacha-prompt hidden"></div><div class="gacha-info-display hidden"></div><div class="sample-draws-container hidden"></div><div class="gacha-reward-display hidden"></div></div>';
+
+var psiTurk = {
+  getPage: function(n) { return TEMPLATES[n] || "<div>Not found: "+n+"</div>"; },
+  preloadPages: function(){}, recordTrialData: function(){},
+  saveData: function(o){ if(o&&o.success) o.success(); }
+};
+var uniqueId="test"; var adServerLoc=""; var mode="debug";
+</script>
+
+<script>
+var jsPsychModule = (typeof JsPsych !== 'undefined') ? JsPsych : {
+  ParameterType: { STRING:0, INT:1, FLOAT:2, BOOL:3, ARRAY:4, OBJECT:5 }
+};
+if (!jsPsychModule.ParameterType) {
+  jsPsychModule.ParameterType = { STRING:0, INT:1, FLOAT:2, BOOL:3, ARRAY:4, OBJECT:5 };
+}
+</script>
+
+<script src="static/js/jspsych-7.3/plugin-gacha-BDM-slider.js"></script>
+
+<script>
+var currentJsPsych = null;
+var trialCounter = 0;
+var sessionSingleArmIdx = null;
+
+function sampleNorm(mu, sd) {
+  var u = 1 - Math.random(), v = Math.random();
+  return mu + sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function clampCoin(v) { return Math.max(1, Math.min(9, Math.round(v))); }
+
+var INFO_CUE_COLOR_POOL_STANDALONE = {
+  purple: "#9B59B6",
+  cyan: "#00BCD4",
+  yellow: "#F1C40F",
+  darkGreen: "#1B5E20",
+};
+
+function randomizeStandaloneInfoTypeColors() {
+  var informativeTypes = ["A", "B", "C"];
+  var poolKeys = ["cyan", "yellow", "darkGreen"];
+  for (var i = poolKeys.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = poolKeys[i];
+    poolKeys[i] = poolKeys[j];
+    poolKeys[j] = tmp;
+  }
+  var mapping = {
+    D: INFO_CUE_COLOR_POOL_STANDALONE.purple,
+  };
+  informativeTypes.forEach(function (infoType, idx) {
+    mapping[infoType] = INFO_CUE_COLOR_POOL_STANDALONE[poolKeys[idx]];
+  });
+  return mapping;
+}
+
+function makeTrialParams(trialNum, infoType, waitCost, environmentType, blockNum, blockLength) {
+  var mean = 6;
+  var sd = 1.5;
+  var altMean = 4;
+  var altSd = 1.5;
+  var colors = ["red", "blue"];
+  var env = environmentType || "NI";
+  var isCA = env === "CA";
+
+  if (!isCA && sessionSingleArmIdx === null) {
+    sessionSingleArmIdx = Math.random() < 0.5 ? 0 : 1;
+  }
+
+  var armIdx = isCA ? 0 : sessionSingleArmIdx;
+  var color = colors[armIdx];
+  var outcomeRed = clampCoin(sampleNorm(mean, sd));
+  var outcomeBlue = clampCoin(sampleNorm(altMean, altSd));
+  var outcome = armIdx === 0 ? outcomeRed : outcomeBlue;
+  var outcomeAlt = armIdx === 0 ? outcomeBlue : outcomeRed;
+
+  return {
+    type: jsPsychGachaBDMTask,
+    taskStage:"test", trialNum:trialNum, blockNum:blockNum, blockLength:blockLength, practiceblockLength:blockLength, ifPractice:0,
+    environmentType: env,
+    showExitOption: env === "TA",
+    showTimer: env === "TA",
+    timerScope: env === "TA" ? "exit_decision_only" : "none",
+    fixation_duration:10000, fixation_blankpageDuration:500,
+    choice_duration:15000, choice_blankpageDuration:500,
+    infobidchoiceduration:15000, infobidchoice_blankpageDuration:500,
+    bidDisplayTime:1500, payMessageDisplayTime:3000, ballDropDuration:1400, infoRevealDuration:3000,
+    rewardRevealDuration:2000,
+    rewardWaitDuration: waitCost * 1000,
+    exitStayDecisionDuration: 3000,
+    ITIduration:500,
+    numberofOffers: isCA ? 2 : 1,
+    armIndex: armIdx,
+    armColor: color,
+    armMean: armIdx === 0 ? mean : altMean,
+    armSd: armIdx === 0 ? sd : altSd,
+    outcome: outcome,
+    armIndices:[0, 1], armColors:["red", "blue"],
+    armMeans:[mean, altMean], armSds:[sd, altSd],
+    outcomes: isCA ? [outcomeRed, outcomeBlue] : [outcomeRed, outcomeBlue],
+    armIndicators:[""], armMeanings:["single"],
+    armSdCaseInds:[0], arm_means_same:false, arm_sds_same:false, arm_colors_same:false,
+    this_block_color:"", distributionCase:0, distributionType:"gaussian",
+    blockSdInd:1, blockSdCaseInd:[0,0], blockId:1, blockErId:0, blockSdId:1, blockDiffId:0,
+    infoType:infoType,
+    sampleDraws:{
+      arm0:[clampCoin(sampleNorm(mean,sd)), clampCoin(sampleNorm(mean,sd)), clampCoin(sampleNorm(mean,sd))],
+      arm1:[clampCoin(sampleNorm(altMean,altSd)), clampCoin(sampleNorm(altMean,altSd)), clampCoin(sampleNorm(altMean,altSd))]
+    },
+    sampleDrawCount:3,
+    gachaMaxBid: 1,
+    gachaMaxBidLabel: 1,
+    sliderMax: 1.25,
+    sliderStep: 0.01,
+    sliderRandomStart: 0.5,
+    infoTypeColors: window.participantInfoTypeColors || {},
+    exitButtonImage:"exit.jpg"
+  };
+}
+
+function runTrial() {
+  var startType = document.getElementById("info-type-select").value;
+  var environmentType = document.getElementById("environment-select").value;
+  var timerSec = parseInt(document.getElementById("timer-input").value) || 120;
+  var waitCost = parseInt(document.getElementById("wait-cost-input").value) || 5;
+  var trialsPerBlock = parseInt(document.getElementById("trials-per-block-input").value) || 10;
+  trialCounter = 0;
+  sessionSingleArmIdx = null;
+  window.participantInfoTypeColors = randomizeStandaloneInfoTypeColors();
+
+  var totalTimeMs = timerSec * 1000;
+  window.experimentStartTime = null;
+  window.experimentTotalTime = totalTimeMs;
+  window.taDecisionTimeUsed = 0;
+  window.sessionClockStart = null;
+  if (window.sessionClockRafId != null) {
+    cancelAnimationFrame(window.sessionClockRafId);
+    window.sessionClockRafId = null;
+  }
+  var oldSessionClock = document.getElementById("session-elapsed-clock");
+  if (oldSessionClock) oldSessionClock.remove();
+
+  document.getElementById("jspsych-target").innerHTML = "";
+  document.getElementById("status-text").textContent =
+    "Session running — " + environmentType + " block, " + trialsPerBlock + " trials/block, " +
+    timerSec + "s TA budget, " + waitCost + "s wait cost";
+
+  var infoTypes = ["A","B","C"];
+  var maxTrials = environmentType === "TA" ? 100 : trialsPerBlock;
+  var timeline = [];
+
+  for (var i = 0; i < maxTrials; i++) {
+    var infoType = startType === "random" ? infoTypes[i % 3] : startType;
+    var blockNum = Math.floor(i / trialsPerBlock) + 1;
+    var trialInBlock = (i % trialsPerBlock) + 1;
+    (function(idx, trialInBlockNum, blockNumber, it, wc, env, blockLen) {
+      timeline.push({
+        timeline: [makeTrialParams(trialInBlockNum, it, wc, env, blockNumber, blockLen)],
+        conditional_function: function() {
+          if (env !== "TA") return idx < blockLen;
+          return (window.taDecisionTimeUsed || 0) < window.experimentTotalTime;
+        }
+      });
+    })(i, trialInBlock, blockNum, infoType, waitCost, environmentType, trialsPerBlock);
+  }
+
+  var totalEarnings = 0;
+
+  currentJsPsych = initJsPsych({
+    display_element: "jspsych-target",
+    on_trial_finish: function(data) {
+      if (data.netEarnings_coins !== undefined) {
+        trialCounter++;
+        totalEarnings += data.netEarnings_coins || 0;
+        var decision = data.exitOrStay || "?";
+        var timeLeft = data.timeRemaining !== undefined ? (data.timeRemaining/1000).toFixed(1) + "s" : "?";
+        document.getElementById("status-text").textContent =
+          "Trial " + trialCounter + " — " + decision.toUpperCase() +
+          " | Reward=" + (data.arm_rewardAmount||0) +
+          " | Net=" + (data.netEarnings_coins||0) +
+          " | Total=" + totalEarnings +
+          " | Time left: " + timeLeft;
+      }
+    },
+    on_finish: function() {
+      var el = document.getElementById("experiment-timer");
+      if (el) el.remove();
+      document.getElementById("status-text").textContent =
+        "Session complete! " + trialCounter + " trials, total earnings: " + totalEarnings + " coins. Check console for data.";
+      console.log("All data:", currentJsPsych.data.get().values());
+    }
+  });
+
+  currentJsPsych.run(timeline);
+}
+</script>
+</body>
+</html>

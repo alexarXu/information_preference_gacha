@@ -1,0 +1,36 @@
+# Virtual environments (never commit)
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# Python bytecode / build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Local runtime / exported data
+participants.db
+server.log
+*.log
+eventdata.csv
+questiondata.csv
+bonuses.txt
+
+# Secrets / environment variables
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

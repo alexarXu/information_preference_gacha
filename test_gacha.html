@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gacha Machine Test</title>
+    <link rel="stylesheet" href="static/js/jspsych-7.3/jspsych.css" type="text/css">
+    <link rel="stylesheet" href="static/css/mystyles.css" type="text/css">
+    <style>
+        html, body { margin: 0; padding: 0; height: 100%; background: #f0f0f0; overflow: hidden; }
+        #test-controls {
+            position: fixed; top: 0; left: 0; right: 0; height: 40px;
+            background: #333; color: white; padding: 0 16px;
+            display: flex; gap: 12px; align-items: center;
+            z-index: 9999; font-family: sans-serif; font-size: 14px;
+        }
+        #test-controls button {
+            padding: 6px 14px; cursor: pointer; border: none;
+            border-radius: 4px; font-size: 13px; background: #4CAF50; color: white;
+        }
+        #test-controls button:hover { background: #45a049; }
+        #test-controls select { padding: 4px 8px; font-size: 13px; }
+        #jspsych-target {
+            position: fixed; top: 40px; left: 0; right: 0; bottom: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="test-controls">
+    <span><b>Gacha Test</b></span>
+    <label>Info Type:
+        <select id="info-type-select">
+            <option value="A">A — Exact Reward</option>
+            <option value="B">B — Good/Bad Face</option>
+            <option value="C">C — Sample Draws</option>
+        </select>
+    </label>
+    <button onclick="runTrial()">Run Trial</button>
+    <span id="status-text" style="color:#aaa;">Ready. Click "Run Trial" to start.</span>
+</div>
+
+<div id="jspsych-target"></div>
+
+<!-- jsPsych core -->
+<script src="static/js/jspsych-7.3/jspsych.js"></script>
+<script src="static/js/jspsych-7.3/plugin-html-keyboard-response.js"></script>
+
+<!-- Mock psiTurk so the plugin can call psiTurk.getPage() -->
+<script>
+var TEMPLATES = {};
+
+TEMPLATES["trialStages/fixation.html"] = `
+<div id="fixation-div">
+    <div id="fixation-container" class="fixation-container">
+        <div id="fixation" class="fixation">+</div>
+    </div>
+    <div id="trialInfo">[TRIAL_TYPE] [TRIAL_NUM] of [BLOCK_LENGTH]</div>
+</div>`;
+
+TEMPLATES["trialStages/gachaChoice.html"] = `
+<div class="epoch" id="gachaChoice">
+    <div class="gacha-wrapper">
+        <div id="machine-left" class="machine-container">
+            <div class="machine-indicator"></div>
+            <div class="gacha-machine">
+                <div class="gacha-dome"><div class="gacha-dome-shine"></div></div>
+                <div class="gacha-neck"></div>
+                <div class="gacha-body"><div class="gacha-knob"></div></div>
+                <div class="gacha-base"><div class="gacha-slot"></div></div>
+            </div>
+            <div class="gacha-ball-zone">
+                <div class="gacha-ball hidden"><span class="ball-content">🪙</span></div>
+            </div>
+        </div>
+        <div id="machine-right" class="machine-container">
+            <div class="machine-indicator"></div>
+            <div class="gacha-machine">
+                <div class="gacha-dome"><div class="gacha-dome-shine"></div></div>
+                <div class="gacha-neck"></div>
+                <div class="gacha-body"><div class="gacha-knob"></div></div>
+                <div class="gacha-base"><div class="gacha-slot"></div></div>
+            </div>
+            <div class="gacha-ball-zone">
+                <div class="gacha-ball hidden"><span class="ball-content">🪙</span></div>
+            </div>
+        </div>
+    </div>
+    <div class="gacha-prompt hidden"></div>
+    <div class="gacha-info-display hidden"></div>
+    <div class="sample-draws-container hidden"></div>
+    <div class="gacha-reward-display hidden"></div>
+</div>`;
+
+var psiTurk = {
+    getPage: function(name) { return TEMPLATES[name] || "<div>Template not found: " + name + "</div>"; },
+    preloadPages: function() {},
+    recordTrialData: function() {},
+    saveData: function(opts) { if (opts && opts.success) opts.success(); }
+};
+
+var uniqueId = "test_user";
+var adServerLoc = "";
+var mode = "debug";
+</script>
+
+<!-- The gacha plugin (uses jsPsychModule) -->
+<script>
+var jsPsychModule = (function() {
+    var module = JsPsych;
+    if (!module) {
+        module = { ParameterType: {} };
+    }
+    return module;
+})();
+
+if (!jsPsychModule.ParameterType) {
+    jsPsychModule.ParameterType = {
+        STRING: 0, INT: 1, FLOAT: 2, BOOL: 3, ARRAY: 4, OBJECT: 5
+    };
+}
+</script>
+<script src="static/js/jspsych-7.3/plugin-gacha-BDM-slider.js"></script>
+
+<script>
+var currentJsPsych = null;
+
+function runTrial() {
+    var infoType = document.getElementById("info-type-select").value;
+    document.getElementById("status-text").textContent = "Running trial with Info Type " + infoType + "...";
+
+    var target = document.getElementById("jspsych-target");
+    target.innerHTML = "";
+
+    currentJsPsych = initJsPsych({
+        display_element: "jspsych-target",
+        on_finish: function() {
+            var data = currentJsPsych.data.get().last(1).values()[0];
+            document.getElementById("status-text").textContent =
+                "Trial done! Reward=" + data.arm_rewardAmount +
+                " | Info type=" + data.info_type +
+                " | Bid=" + (data.info_bidAmount !== undefined ? data.info_bidAmount.toFixed(1) : "N/A") +
+                " | Won=" + data.info_obtained +
+                " | Net=" + data.netEarnings_coins;
+            console.log("Trial data:", data);
+        }
+    });
+
+    var sampleDraws = {
+        arm0: [Math.round(100 + Math.random()*50), Math.round(80 + Math.random()*40), Math.round(110 + Math.random()*30)],
+        arm1: [Math.round(60 + Math.random()*30), Math.round(70 + Math.random()*20), Math.round(55 + Math.random()*25)]
+    };
+
+    var trial = {
+        type: jsPsychGachaBDMTask,
+        taskStage: "test",
+        trialNum: 1,
+        blockNum: 1,
+        blockLength: 14,
+        practiceblockLength: 14,
+        ifPractice: 0,
+        fixation_duration: 10000,
+        fixation_blankpageDuration: 2000,
+        choice_duration: 15000,
+        choice_blankpageDuration: 2000,
+        infobidchoiceduration: 15000,
+        infobidchoice_blankpageDuration: 2000,
+        bidDisplayTime: 2000,
+        payMessageDisplayTime: 1500,
+        ballDropDuration: 1400,
+        infoRevealDuration: 3000,
+        rewardRevealDuration: 3000,
+        ITIduration: 1000,
+        numberofOffers: 2,
+        armIndices: [0, 1],
+        armColors: ["red", "blue"],
+        armMeans: [7, 3],
+        armSds: [1, 2],
+        armIndicators: ["Low Variance", "High Variance"],
+        armMeanings: ["red:high", "blue:low"],
+        armSdCaseInds: [0, 1],
+        arm_means_same: false,
+        arm_sds_same: false,
+        arm_colors_same: false,
+        this_block_color: "",
+        distributionCase: 0,
+        distributionType: "gaussian",
+        blockSdInd: 1,
+        blockSdCaseInd: [0, 1],
+        blockId: 1,
+        blockErId: 0,
+        blockSdId: 1,
+        blockDiffId: 0,
+        outcomes: [7, 4],
+        goodArmIndex: 0,
+        badArmIndex: 1,
+        infoType: infoType,
+        sampleDraws: sampleDraws,
+        sampleDrawCount: 3,
+        gachaMaxBid: 1,
+        gachaMaxBidLabel: 1,
+        sliderMax: 1.25,
+        sliderStep: 0.01,
+        sliderRandomStart: 0.5,
+    };
+
+    currentJsPsych.run([trial]);
+}
+</script>
+
+</body>
+</html>

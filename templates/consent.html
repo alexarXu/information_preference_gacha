@@ -1,0 +1,132 @@
+{% extends 'layouts/layout.html' %}
+<!--
+  The consent.html displays the text of your IRB-approved
+  consent form.  Even if you are not required to provide
+  a consent form, it is helpful to use this form to
+  describe what people can do if an error comes up, etc...
+
+-->
+{% block head %}
+    {{ super() }}
+    <meta charset="utf-8" />
+    <title>Neuroscience Experiment - Informed Consent Form</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
+    <link rel="icon" href="/static/favicon.ico" />
+    <script type="text/javascript">
+        function onexit() {
+          self.close(); // no harm, no foul here
+        }
+    </script>
+		<style>
+			@media print {
+				body * {
+					visibility: hidden;
+				}
+				.legal, .legal * {
+					visibility: visible;
+				}
+				.legal {
+					position: absolute;
+					left: 0;
+					top: 0;
+					overflow:visible;
+				}
+			}
+		</style>
+    {% endblock %}
+{% block body %}
+        <div id="container-consent">
+            <div id="consent">
+                <h1>We need your consent to proceed</h1>
+                <hr />
+                <div class="legal well">
+                  <p>Project Title: Analysis of human evaluation of different types of information in different environments</p>        
+                  <p>Principal Investigator: Ilya Monosov</p>
+                  <p>Research Team Contact: Beiya Xu - (443) 418-2841 - bxu41@jh.edu
+
+                  </p>
+                  
+                  <div>
+                      <p>
+                          We invite you to participate in this research study because you are a healthy adult between the ages of 18-55. 
+                          The purpose of this research study is to investigate how people factor uncertainty and information into their choices. 
+                      </p>
+                      <p>
+                          If you agree to participate, we would like you to complete one or more computerized tasks that will involve viewing stimuli on the screen 
+                          (e.g., shapes, words, images, complex patterns) and indicating a response based on the task instructions. 
+                          Responses may involve making choices, engaging in a mental process and/or carrying out a physical action.
+                          Some of these tasks may offer additional incentives above your base pay (see Compensation). 
+                          You may also be asked to complete brief questionnaires assessing your subjective experiences, various general preferences, 
+                          and demographic information. You are free to skip any questions that you prefer not to answer in the questionnaire. 
+                          The entire procedure should last 120-180 minutes. 
+                      </p>
+                      <p>
+                          We will not ask you for additional consent for these uses of your information.
+                      </p>
+                      <p>
+                          There are no known risks from being in this study, and you will not benefit personally.  
+                          However we hope that others may benefit in the future from what we learn as a result of this study. 
+                      </p>
+                      <p>
+                          You will not have any costs for being in this research study.
+                      </p>
+                      <p> 
+                          You will be paid for being in this research study. Your Prolific ID will be recorded as a way for us to confirm you have completed the experiment and 
+                          then properly compensate you. If you complete this experiment fully, will be paid a base amount of $XXX and may also receive bonus payment based on your performance, 
+                          between $0 to $XXX.
+                      </p>
+                      <p>
+                          We will keep the information you provide confidential by ensuring data are stored and transferred securely and by limiting access to the 
+                          research team only. Your Prolific ID is deidentified, does not contain any information about your name, and will be dissociated 
+                          from your responses and task data, though it is associated with your Prolific worker profile. Any report or article that we write will not include 
+                          information that can directly identify you.  The journals that publish these reports or articles require that we share your information 
+                          that was collected for this study with others to make sure the results of this study are correct and help develop new ideas for research. 
+                          Your information will be shared in a way that cannot directly identify you.
+                      </p>
+                      <p>
+                          If you do not wish to participate in this study or want to end your participation in the study, simply close his window. 
+                          Again, you will not be penalized or lose any benefits for which you otherwise qualify.
+                      </p>
+                      <p>
+                         Also, at the end of the experiment we will ask you whether you are willing to participate in our other studies in the future. 
+                         If you choose not to participate, we won't contact you after this study. If you choose participate, we will send you a request for doing a similar task.
+                      </p>
+                      <p>
+                          We encourage you to ask questions. If you have any questions about the research study itself, please feel free to contact 
+                          the research team by phone at (443) 418-2841 or by email at bxu41@jh.edu. 
+                          If you feel that you have been harmed in any way by your participation in this study, please contact Ilya Monosov at (314) 362-3740. 
+                          
+                      </p>
+                      <p>
+                        //JHU human research protection office description->
+                          <!-- If you have questions, concerns, or complaints about your rights as a research participant, please contact XXXXXXXXX.  -->
+                          <!-- General information about being a research participant can be found on the Human Research Protection Office web site, XXXXXXXXX. -->
+                          <!-- To offer input about your experiences as a research participant or to speak to someone other than the research staff,  -->
+                          <!-- call the Human Research Protection Office at the number above. -->
+                        
+                      </p>
+                      <p>
+                          Thank you very much for your consideration of this research study. 
+                      </p>
+                </div>
+
+                <hr />
+                <h4>Do you understand and consent to these terms?</h4>
+                <br />
+
+                <center>
+                    <button type="button" class="btn btn-primary btn-lg" onClick="window.location='/exp?hitId={{ hitid }}&assignmentId={{ assignmentid }}&workerId={{ workerid }}&mode={{ mode }}'">
+                    <span class="glyphicon glyphicon-ok"></span> I agree
+                    </button>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    <button type="button" class="btn btn-danger btn-lg" onClick="onexit()">
+                    <span class="glyphicon glyphicon-ban-circle"></span> No thanks, I do not want to do this experiment.
+                    </button>
+                </center>
+
+            </div>
+        </div>
+{% endblock %}
